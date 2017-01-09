@@ -49,9 +49,12 @@
 #include <tee_supp_fs.h>
 #include <teec_trace.h>
 #include <tee_supplicant.h>
+#include <tee_socket.h>
 #include <unistd.h>
 
 #include "optee_msg_supplicant.h"
+
+#include <pthread.h>
 
 #ifndef __aligned
 #define __aligned(x) __attribute__((__aligned__(x)))
@@ -565,7 +568,7 @@ int main(int argc, char *argv[])
 	struct thread_arg arg = { .fd = -1 };
 	int e;
 
-	e = pthread_mutex_init(&arg.mutex);
+	e = pthread_mutex_init(&arg.mutex, NULL);
 	if (e) {
 		EMSG("pthread_mutex_init: %s", strerror(e));
 		EMSG("terminating...");

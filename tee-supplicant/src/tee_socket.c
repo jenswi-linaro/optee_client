@@ -535,7 +535,7 @@ static TEEC_Result tee_socket_recv(size_t num_params,
 }
 
 static TEEC_Result tee_socket_ioctl_tcp(int fd, uint32_t command,
-					void *buf, uint64_t *blen)
+					void *buf, __u64 *blen)
 {
 	switch (command) {
 	case TEE_TCP_SET_RECVBUF:
@@ -551,8 +551,9 @@ static TEEC_Result tee_socket_ioctl_tcp(int fd, uint32_t command,
 	}
 }
 
-static TEEC_Result sa_set_port(struct sockaddr *sa, socklen_t slen,
-			       uint32_t port)
+static TEEC_Result __attribute__((unused))
+sa_set_port(struct sockaddr *sa, socklen_t slen,
+	    uint32_t port)
 {
 	if (sa->sa_family == AF_INET) {
 		struct sockaddr_in *sain = (void *)sa;
@@ -636,7 +637,7 @@ static TEEC_Result udp_changeaddr(int fd, int family, const char *server,
 }
 
 static TEEC_Result tee_socket_ioctl_udp(int fd, uint32_t command,
-					void *buf, uint64_t *blen)
+					void *buf, __u64 *blen)
 {
 	TEEC_Result res;
 	struct sockaddr_storage sass;
