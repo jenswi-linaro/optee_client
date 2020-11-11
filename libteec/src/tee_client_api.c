@@ -217,15 +217,11 @@ static TEEC_Result teec_pre_process_tmpref(TEEC_Context *ctx,
 			MEMREF_SHM_ID(param) = shm->id;
 		}
 	} else {
-		shm->buffer = tmpref->buffer;
-		res = TEEC_RegisterSharedMemory(ctx, shm);
+		res = TEEC_AllocateSharedMemory(ctx, shm);
 		if (res != TEEC_SUCCESS)
 			return res;
 
-		if (shm->shadow_buffer)
-			memcpy(shm->shadow_buffer, tmpref->buffer,
-			       tmpref->size);
-
+		memcpy(shm->buffer, tmpref->buffer, tmpref->size);
 		MEMREF_SHM_ID(param) = shm->id;
 	}
 
@@ -388,10 +384,8 @@ static void teec_post_process_tmpref(uint32_t param_type,
 			TEEC_SharedMemory *shm)
 {
 	if (param_type != TEEC_MEMREF_TEMP_INPUT) {
-		if (MEMREF_SIZE(param) <= tmpref->size && tmpref->buffer &&
-		    shm->shadow_buffer)
-			memcpy(tmpref->buffer, shm->shadow_buffer,
-			       MEMREF_SIZE(param));
+		if (MEMREF_SIZE(param) <= tmpref->size && tmpref->buffer)
+			memcpy(tmpref->buffer, shm->buffer, MEMREF_SIZE(param));
 
 		tmpref->size = MEMREF_SIZE(param);
 	}
