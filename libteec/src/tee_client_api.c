@@ -920,6 +920,94 @@ TEEC_Result TEEC_AllocateSharedMemory(TEEC_Context *ctx, TEEC_SharedMemory *shm)
 	return TEEC_SUCCESS;
 }
 
+#ifndef TEE_IOC_RSTMEM_ALLOC
+
+#define TEE_IOC_UC_RESERVED		0
+#define TEE_IOC_UC_SECURE_VIDEO_PLAY	1
+#define TEE_IOC_UC_TRUSTED_UI		2
+#define TEE_IOC_UC_SECURE_VIDEO_RECORD	3
+
+
+/**
+ * struct tee_ioctl_rstmem_alloc_data - Restricted memory allocate argument
+ * @size:	[in/out] Size of restricted memory to allocate
+ * @flags:	[in/out] Flags to/from allocate
+ * @use_case    [in] Restricted memroy use case, TEE_IOC_UC_*
+ * @id:		[out] Identifier of the restricted memory
+ */
+struct tee_ioctl_rstmem_alloc_data {
+	__u64 size;
+	__u32 flags;
+	__u32 use_case;
+	__s32 id;
+};
+
+/**
+ * TEE_IOC_RSTMEM_ALLOC - allocate restricted memory
+ *
+ * Allocates restricted physically memory normally not accessible by the
+ * kernel.
+ *
+ * Returns a file descriptor on success or < 0 on failure
+ *
+ * The returned file descriptor is a dma-buf that can be attached and
+ * mapped for device with permission to access the physical memory.
+ */
+#define TEE_IOC_RSTMEM_ALLOC     _IOWR(TEE_IOC_MAGIC, TEE_IOC_BASE + 10, \
+				       struct tee_ioctl_rstmem_alloc_data)
+#endif /*TEE_IOC_RSTMEM_ALLOC*/
+
+static int rmem_alloc(int fd, size_t size, uint32_t use_case, int *id)
+{
+	struct tee_ioctl_rstmem_alloc_data data = {
+		.size = size,
+		.use_case = use_case,
+	};
+	int rmem_fd = 0;
+
+	rmem_fd = ioctl(fd, TEE_IOC_RSTMEM_ALLOC, &data);
+	if (rmem_fd >= 0)
+		*id = data.id;
+	return rmem_fd;
+}
+
+TEEC_Result TEEC_AllocateRestrictedMemory(TEEC_Context *ctx,
+					  TEEC_SharedMemory *shm,
+					  uint32_t use_case)
+{
+	uint32_t flags = 0;
+	size_t size = 0;
+	int fd = 0;
+	int id = 0;
+
+	if (!ctx || !shm)
+		return TEEC_ERROR_BAD_PARAMETERS;
+
+	flags = shm->flags;
+	size = shm->size;
+	if (!flags || (flags & ~(TEEC_MEM_INPUT | TEEC_MEM_OUTPUT)) || !size)
+		return TEEC_ERROR_BAD_PARAMETERS;
+
+	if (use_case != TEEC_USE_CASE_SECURE_VIDEO_PLAY)
+		return TEEC_ERROR_NOT_SUPPORTED;
+
+	fd = rmem_alloc(ctx->imp.fd, size, TEE_IOC_UC_SECURE_VIDEO_PLAY, &id);
+	if (fd < 0) {
+		if (errno == ENOMEM)
+			return TEEC_ERROR_OUT_OF_MEMORY;
+		return TEEC_ERROR_NOT_SUPPORTED;
+	}
+
+	*shm = (TEEC_SharedMemory){
+		.size = size,
+		.flags = flags,
+		.imp.id = id,
+		.imp.registered_fd = fd,
+	};
+
+	return TEEC_SUCCESS;
+}
+
 void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *shm)
 {
 	if (!shm || shm->imp.id == -1)

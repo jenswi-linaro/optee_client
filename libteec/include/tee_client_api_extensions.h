@@ -50,6 +50,12 @@ TEEC_Result TEEC_RegisterSharedMemoryFileDescriptor(TEEC_Context *context,
 						    TEEC_SharedMemory *sharedMem,
 						    int fd);
 
+#define TEEC_USE_CASE_SECURE_VIDEO_PLAY		1
+
+TEEC_Result TEEC_AllocateRestrictedMemory(TEEC_Context *ctx,
+					  TEEC_SharedMemory *shm,
+					  uint32_t use_case);
+
 #ifdef __cplusplus
 }
 #endif
