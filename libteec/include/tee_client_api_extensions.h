@@ -55,6 +55,8 @@ TEEC_Result TEEC_RegisterSharedMemoryFileDescriptor(TEEC_Context *context,
 TEEC_Result TEEC_AllocateRestrictedMemory(TEEC_Context *ctx,
 					  TEEC_SharedMemory *shm,
 					  uint32_t use_case);
+TEEC_Result TEEC_InitRestrictedMemoryFromFd(TEEC_Context *ctx,
+					    TEEC_SharedMemory *shm, int fd);
 
 #ifdef __cplusplus
 }

@@ -1008,6 +1008,44 @@ TEEC_Result TEEC_AllocateRestrictedMemory(TEEC_Context *ctx,
 	return TEEC_SUCCESS;
 }
 
+#ifndef TEE_IOC_RSTMEM_FD_INFO
+struct tee_ioctl_rstmem_fd_info {
+	__s32 fd;
+	__u32 flags;
+	__u32 use_case;
+	__s32 id;
+	__u64 size;
+};
+#define TEE_IOC_RSTMEM_FD_INFO _IOWR(TEE_IOC_MAGIC, TEE_IOC_BASE + 11, \
+				     struct tee_ioctl_rstmem_fd_info)
+#endif /*TEE_IOC_RSTMEM_FD_INFO*/
+
+TEEC_Result TEEC_InitRestrictedMemoryFromFd(TEEC_Context *ctx,
+					    TEEC_SharedMemory *shm, int fd)
+{
+	struct tee_ioctl_rstmem_fd_info data = { .fd = fd, };
+	uint32_t flags = 0;
+
+	if (!ctx || !shm)
+		return TEEC_ERROR_BAD_PARAMETERS;
+
+	flags = shm->flags;
+	if (!flags || (flags & ~(TEEC_MEM_INPUT | TEEC_MEM_OUTPUT)))
+		return TEEC_ERROR_BAD_PARAMETERS;
+
+	if (ioctl(ctx->imp.fd, TEE_IOC_RSTMEM_FD_INFO, &data))
+		return TEEC_ERROR_BAD_PARAMETERS;
+
+	*shm = (TEEC_SharedMemory){
+		.size = data.size,
+		.flags = flags,
+		.imp.id = data.id,
+		.imp.registered_fd = fd,
+	};
+
+	return TEEC_SUCCESS;
+}
+
 void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *shm)
 {
 	if (!shm || shm->imp.id == -1)
